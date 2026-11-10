@@ -40,7 +40,7 @@ jadx --no-res --no-debug-info -d targets/<target>/jadx-out/ targets/<target>/apk
 ```
 revkit/
 ├─ .claude/commands/    /rev-* slash commands (the actual "code" of this repo)
-├─ .mcp.json            Ghidra MCP connection (local mcp_bridge.exe, port 8765, stdio)
+├─ .mcp.json.example    Ghidra MCP connection template (mcp_bridge.exe, port 8765, stdio) — copy to .mcp.json locally
 ├─ docs/                Full workflow methodology (Korean) — read before changing pipeline behavior
 └─ targets/
    ├─ INDEX.md          Cross-target summary table (committed)

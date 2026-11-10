@@ -522,8 +522,8 @@ revkit/
 │  └─ prompts.md        프롬프트 모음
 ├─ templates/
 │  └─ report-template.md
-├─ .gitignore           apk·so·디컴파일 결과 제외
-├─ .mcp.json            Ghidra MCP 연결 설정
+├─ .gitignore           apk·so·디컴파일 결과·로컬 설정 제외
+├─ .mcp.json.example    Ghidra MCP 연결 설정 템플릿 (실제 .mcp.json은 사용자명·경로 포함 → 로컬 전용, gitignore)
 └─ targets/             분석 대상별 (gitignore, notes만 커밋)
    ├─ INDEX.md          대상 전체 한눈표
    └─ <대상>/
@@ -544,7 +544,7 @@ revkit/
 | `notes/report.md` | 종합 보고서 | `/rev-report` | 커밋 |
 | `frida/*.js` | 후킹 스크립트 | 우회 단계 | 커밋 |
 
-**버전관리 (.gitignore) — 민감·대용량 제외.** 실제 파일은 레포 루트 `.gitignore` 참조. 핵심: `targets/**/{apk,unpacked,jadx-out,ghidra}/`와 `*.apk/*.so/*.dex/*.pem/*.burp`는 제외, `targets/**/notes/`·`targets/**/frida/`·`targets/INDEX.md`는 예외로 커밋.
+**버전관리 (.gitignore) — 민감·대용량·로컬전용 제외.** 실제 파일은 레포 루트 `.gitignore` 참조. 핵심: `targets/**/{apk,unpacked,jadx-out,ghidra}/`와 `*.apk/*.so/*.dex/*.pem/*.burp`는 제외, `.mcp.json`(사용자명·설치경로 포함 — 머신마다 다름)도 제외하고 `.mcp.json.example` 템플릿만 커밋, `targets/**/notes/`·`targets/**/frida/`·`targets/INDEX.md`는 예외로 커밋.
 
 **CLAUDE.md 템플릿 (레포 루트 — 새 APK마다 치환)**
 
