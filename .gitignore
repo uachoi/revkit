@@ -1,0 +1,36 @@
+# ===== 분석 대상·실습 바이너리 (절대 커밋 금지) =====
+# 대상별 작업 산출물: 바이너리·디컴파일 결과는 제외
+targets/**/apk/
+targets/**/unpacked/
+targets/**/jadx-out/
+targets/**/ghidra/
+
+# 바이너리 일반 (루트에 남은 실습 파일 포함)
+*.apk
+*.zip
+*.so
+*.dex
+*.bin
+
+# ===== 민감 파일 =====
+*.pem
+송금페이로드*
+
+# ===== 로컬 머신 전용 설정 (사용자명·경로 포함, 머신마다 다름) =====
+.mcp.json
+
+# ===== Burp 실습 파일 (개인 작업물) =====
+*.burp
+*.burp.backup
+aos1
+
+# ===== 크래시/리플레이 로그 =====
+hs_err_pid*.log
+replay_pid*.log
+
+# ===== 커밋 대상 (명시적 예외) — 분석 노트·Frida 스크립트는 올림 =====
+!targets/**/notes/
+!targets/**/notes/**
+!targets/**/frida/
+!targets/**/frida/**
+!targets/INDEX.md
