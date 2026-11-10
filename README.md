@@ -29,17 +29,17 @@ targets/<대상>/apk/<파일명>.apk        # 또는 .zip
 ## 전체 파이프라인 흐름
 
 ```mermaid
-flowchart TD
-    A["APK 배치<br/>targets/&lt;대상&gt;/apk/"] --> B["/rev-check &lt;대상&gt;<br/>환경 체크"]
-    B -->|✅ 통과| C["/rev-jadx &lt;대상&gt;<br/>jadx 디컴파일 + Java triage<br/>(완전 자동)"]
-    B -->|❌ 실패| B1["해결법 안내 후 중단"]
+flowchart LR
+    A["APK 배치<br/>targets/&lt;대상&gt;/apk/"] --> B["/rev-check<br/>환경 체크"]
+    B -->|✅| C["/rev-jadx<br/>디컴파일+triage<br/>(완전 자동)"]
+    B -.->|❌| B1["해결법 안내<br/>후 중단"]
     C --> D{"Ghidra 게이트<br/>(유일한 수동 지점)"}
-    D -->|"CodeBrowser에<br/>타깃 .so open + analyze"| E["/rev-native &lt;대상&gt;<br/>네이티브 분석"]
-    D -->|아직 안 열림| D1["안내 후 중단:<br/>.so 열고 /rev-native 재실행"]
-    E --> F{"triage.md 체크리스트<br/>전부 done?"}
-    F -->|"남은 .so 있음"| D
-    F -->|모두 done| G["/rev-report &lt;대상&gt;<br/>report.md + INDEX.md 갱신"]
-    G --> H["(다음 단계) Frida 동적 우회<br/>frida/*.js 수동 작성·실행"]
+    D -->|".so open<br/>+ analyze"| E["/rev-native<br/>네이티브 분석"]
+    D -.->|아직 안 열림| D1["안내 후 중단"]
+    E --> F{"체크리스트<br/>전부 done?"}
+    F -.->|남은 .so 있음| D
+    F -->|모두 done| G["/rev-report<br/>report.md + INDEX 갱신"]
+    G --> H["(다음) Frida 동적 우회<br/>frida/*.js 수동 작성·실행"]
 
     style D fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
     style G fill:#dbeafe,stroke:#2563eb,stroke-width:2px
@@ -75,24 +75,32 @@ flowchart TD
 
 하나의 APK에서 `.so`가 수십 개 나오는 건 흔하다(React Native, OpenSSL, Fresco 등 서드파티 다수 포함). 이 중 실제로 볼 가치가 있는 건 보통 1~3개뿐이고, **빠짐없이 + 정확하게** 처리하려면 "눈에 보이는 대로 하나씩"이 아니라 아래 순서를 따른다.
 
+**1) 전수 목록화·우선순위 매기기 (한 번만)**
+
 ```mermaid
-flowchart TD
-    A["lib/arm64-v8a/*.so 전체 목록"] --> B["서드파티 제외<br/>(libflutter·libcrypto·libssl·libsqlite·libhermes 등)"]
-    B --> C["ABI 중복 제거<br/>(arm64-v8a 하나만, armeabi-v7a/x86_64 제외)"]
-    C --> D["신호 점수화<br/>(loadLibrary 클래스명·native 개수·인증/루팅 키워드·JNI export 수)"]
-    D --> E["triage.md 전수 체크리스트 생성<br/>(.so별 신호·우선순위·상태=pending)"]
-    E --> F["우선순위 최상위 pending 선택"]
-    F --> G["Ghidra CodeBrowser에<br/>그 .so import + analyze"]
-    G --> H["/rev-native &lt;대상&gt; 실행"]
-    H --> I{"열린 .so == 체크리스트 항목?<br/>(함수 수·심볼 대조)"}
-    I -->|불일치| G
-    I -->|일치| J["JNI_OnLoad·탐지 로직 분석<br/>notes/native/&lt;so&gt;.md 작성"]
-    J --> K["triage.md 해당 항목 → done"]
-    K --> L{"pending 남음?"}
-    L -->|있음| F
-    L -->|없음| M["전수 완료 →<br/>/rev-report &lt;대상&gt;"]
+flowchart LR
+    A["lib/arm64-v8a/<br/>*.so 전체 목록"] --> B["서드파티 제외<br/>(flutter·crypto·<br/>ssl·sqlite·hermes)"]
+    B --> C["ABI 중복 제거<br/>(arm64-v8a만)"]
+    C --> D["신호 점수화<br/>(loadLibrary·native·<br/>인증/루팅 키워드)"]
+    D --> E["triage.md<br/>전수 체크리스트<br/>(모든 .so = pending)"]
 
     style E fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+```
+
+**2) `.so` 하나씩 처리 (pending이 없어질 때까지 반복)**
+
+```mermaid
+flowchart LR
+    F["우선순위 최상위<br/>pending 선택"] --> G["Ghidra CodeBrowser에<br/>그 .so import+analyze"]
+    G --> H["/rev-native<br/>&lt;대상&gt; 실행"]
+    H --> I{"열린 .so ==<br/>체크리스트 항목?<br/>(함수 수·심볼 대조)"}
+    I -.->|불일치| G
+    I -->|일치| J["JNI_OnLoad·탐지 로직 분석<br/>notes/native/&lt;so&gt;.md 작성"]
+    J --> K["triage.md<br/>해당 항목 → done"]
+    K --> L{"pending<br/>남음?"}
+    L -.->|있음| F
+    L -->|없음| M["전수 완료 →<br/>/rev-report &lt;대상&gt;"]
+
     style I fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
     style M fill:#dcfce7,stroke:#16a34a,stroke-width:2px
 ```

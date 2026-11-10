@@ -17,11 +17,11 @@ MCP 연동 시 디컴파일 코드가 Claude(클라우드)로 전송되므로, �
 APK 리버싱은 한 도구로 끝나지 않고, **Java단 → 네이티브단 → 자동화 → 런타임 우회**의 4단계로 흐른다. 각 단계가 다음 단계의 입력을 만든다.
 
 ```mermaid
-flowchart TD
-    A["1. 준비<br/>APK 배치 · Ghidra에 .so 열기 · /mcp로 ghidra 확인"] --> B["2. jadx CLI 디컴파일<br/>dex → _work/jadx-out (정적 Java)"]
-    B --> C["3. Claude Code 통합 분석<br/>Java 파일 읽기 + Ghidra MCP로 .so 네이티브 교차분석"]
-    C --> D["4. 문서화<br/>notes/*.md → 분석 보고서"]
-    D --> E["5. Frida 우회 (다음 페이즈)<br/>탐지 함수 후킹 · 서명 위조"]
+flowchart LR
+    A["1. 준비<br/>APK 배치<br/>Ghidra .so 열기"] --> B["2. jadx<br/>dex → jadx-out<br/>(정적 Java)"]
+    B --> C["3. Claude Code<br/>Java 읽기 +<br/>Ghidra MCP 교차분석"]
+    C --> D["4. 문서화<br/>notes/*.md →<br/>분석 보고서"]
+    D --> E["5. Frida 우회<br/>(다음 페이즈)<br/>탐지 후킹·서명위조"]
     style B fill:#dbeafe,stroke:#2563eb,stroke-width:2px
     style C fill:#dbeafe,stroke:#2563eb,stroke-width:2px
     style E stroke:#f59e0b,stroke-width:2px,stroke-dasharray:5 5
