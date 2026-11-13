@@ -159,3 +159,70 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 `nativeFridaEvidence` 0x1025f0 · `nativeDebuggerEvidence` 0x102bbc · `nativeRootEvidence` 0x102d3c ·
 `nativeSignedReport` 0x1031cc · `nativeSignedReportPinning` 0x103a1c · `hmac_sha256` 0x103924 ·
 `detect_frida_evidence` 0x102640 · `detect_debugger_evidence` 0x102c0c · `detect_root_evidence` 0x102d8c
+
+---
+
+## 9. 정식 criterion 태깅 (Java 레이어 — 2-pass 입력)
+
+> `/rev-jadx scn00` 재태깅(2026-11-13). 개선점 #1대로 **재디컴파일 없이** 기존 분석에 criterion ID 메타블록을 얹음.
+> 출처: `jadx-out/sources/kr/co/eqst/pay/s00/Scn00MonitorModule.java` (실소스 라인 근거).
+> 구조 주의: Java 탐지는 네이티브의 **fallback 미러**(`nativeAvailable ? nativeX() : javaX()`) — .so 로드 실패 시 동작, 그리고 Java 메서드 후킹이 네이티브보다 쉬운 우회면.
+
+### [RES-ROOT-01] Java 루트 탐지 (경로·패키지·which su·프로퍼티·mount)
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-1 / MASWE-0051 / MASTG-TEST-0324·0325
+- 위치: `Scn00MonitorModule.java:238` `appLayerDetectsRoot()` (+ ROOT_PATHS `:598`, ROOT_MANAGER_PACKAGES `:599`)
+- 근거: `Build.TAGS` `test-keys`, ROOT_PATHS 14종(`/system/bin/su`,`/data/adb/magisk`,`Superuser.apk`…), `whichSu()`=`Runtime.exec("which su")` `:393`, ROOT_MANAGER_PACKAGES 12종(magisk/kernelsu/apatch/supersu…) `isPackageInstalled` `:410`, `hasUnsafeBootProperties()`(ro.debuggable/ro.secure) `:303`, `mountsContainRootArtifacts()`.
+- 우회(가설): `appLayerDetectsRoot`/`fileExists`/`whichSu`/`isPackageInstalled` 후킹해 false. **단 nativeRootEvidence(네이티브)와 쌍** — 둘 다 무력화 필요.
+- 2차 메모:
+
+### [RES-EMU-01] Java 에뮬레이터/가상환경 탐지  ← (이전 "미발견" 공백 해소)
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-1 / MASWE-0053 / MASTG-TEST-0351
+- 위치: `Scn00MonitorModule.java:267` `looksLikeEmulator()` (appLayerDetectsRoot가 호출)
+- 근거: `Build.FINGERPRINT` generic/vbox/test-keys, `MODEL` google_sdk/emulator/"android sdk built for", `MANUFACTURER` genymotion, `HARDWARE` goldfish/ranchu/vbox, `PRODUCT` sdk_gphone, `fileExists("/dev/qemu_pipe")`,`"/dev/socket/qemud")`.
+- 우회(가설): `Build` 필드 getter·`fileExists` 후킹으로 실기기 위장.
+- 2차 메모:
+
+### [RES-DBG-01] Java 디버거 탐지
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-4 / MASWE-0064 / MASTG-TEST-0352·0353
+- 위치: `Scn00MonitorModule.java:431` `appLayerDetectsDebugger()` + `tracerPid()` `:687`
+- 근거: `Debug.isDebuggerConnected()` ∥ `Debug.waitingForDebugger()` ∥ `tracerPid()>0`(`/proc/self/status` `TracerPid:` 파싱 `:703`). 결과는 buildMonitorVerdict 맵/서명리포트로.
+- 우회(가설): `Debug.isDebuggerConnected`·`tracerPid` 후킹→음성.
+- 2차 메모:
+
+### [RES-HOOK-01] Java Frida/계측 탐지
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-4 / MASWE-0065 / MASTG-TECH-0043
+- 위치: `Scn00MonitorModule.java:423` `appLayerDetectsFrida()` (+ `nativeDetectsFrida()` fallback `:419`)
+- 근거: `tcpPortOpen(27042)`∥`(27043)`, `mapsContainsAny("frida","gum-js","gadget")`, (fallback) `threadNamesContainAny("gum-js-loop","gmain","gdbus")`.
+- 우회(가설): 포트/ maps/스레드명 체크 후킹. 네이티브 RES-HOOK-01과 쌍.
+- 2차 메모:
+
+### [RES-INTEG-03] 하드웨어 키 attestation (F34)  ← (이전 "미발견" 공백 해소)
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-1/2 / MASWE-0054(Device)·0056(App Attestation)
+- 위치: `Scn00MonitorModule.java:194` `keyAttestationChain(challenge)` → 맵 `attestationChain`
+- 근거: Android Keystore 키 attestation 체인(Base64)을 challenge로 생성해 서버 전송. **서버 검증 여부가 강도 좌우**(FP함정: 클라만으론 판단 금지).
+- 우회(가설): 서버검증형이면 우회 난이도 상향. 클라 판단형이면 결과 후킹.
+- 2차 메모:
+
+### [RES-INTEG-01/02] Java APK 서명 자체검증 (F38, anti-tamper)
+- 신뢰도: 가설
+- 표준: MASVS-RESILIENCE-2 / MASWE-0057·0058 / MASTG-TEST-0081·0090
+- 위치: `Scn00MonitorModule.java:554` `appLayerDetectsTamper()` → `signingCertSha256()` `:507`, 비교상수 `OFFICIAL_CERT_SHA256` `:65`
+- 근거: 자기 APK 서명 cert SHA-256 ≠ `fac61745…033b9c` 이면 변조로 판정(`StringsKt.equals(..., OFFICIAL_CERT_SHA256)` `:558`). **native F38(해시산출)의 Java측 비교 상수** — 1차 native 노트의 "비교상수 Java층" 추정 확정.
+- 우회(가설): `signingCertSha256` 반환을 정품 해시로 후킹, 또는 비교 분기. **재패키징 1순위 장애물**.
+- 2차 메모:
+
+### [NET-PIN-01] Java 인증서 SPKI 피닝 관측 (F37)
+- 신뢰도: 가설
+- 표준: MASVS-NETWORK-2 / MASWE-0028 / MASTG-KNOW-0015
+- 위치: `Scn00MonitorModule.java:435` `observedSpki()` + `appLayerVerifyPinnedCert()` `:497`, 상수 `PINNED_SPKI` `:74`/`PINNED_HOST:PORT` `:68`/`:71`
+- 근거: `lab.eqst.co.kr:8406` 로 직접 TLS → 서버 leaf 공개키 SHA-256 == `PINNED_SPKI`(`2c5c6584…aa77f`) 비교.
+- **오탐함정 주의**: 여기 `$observedSpki$trustAll$1`(모든 cert 수락 X509TrustManager `:440`) + accept 하는 HostnameVerifier `:457` 는 **NET-TRUST-01 취약점이 아니다** — 앱 실트래픽이 아니라 **피닝 지문 관측용 probe**다. TrustAll이지만 수집한 지문을 PINNED_SPKI와 대조하는 용도. (실 API 트래픽의 TrustManager가 아님)
+- 우회(가설): 네이티브 NET-PIN-02와 쌍. Java측은 `appLayerVerifyPinnedCert`/`observedSpki` 후킹. 단 **Burp 중계 시 지문 바뀌어 탐지** → 네이티브/Java 양쪽 피닝 무력화 + HMAC 키 위조 필요.
+- 2차 메모:
+
+> **하드코딩 상수(참고)**: `OFFICIAL_CERT_SHA256`, `PINNED_HOST/PORT`, `PINNED_SPKI` 모두 Java 상수로 평문 노출(`:65-74`). 네이티브 HMAC 키(`SCN00-monitor-hmac-key-v1-eqstlb`, §6)와 합쳐 **RASP 신뢰근거가 전부 클라이언트에 상수로 존재** → 리포트 위조의 토대.

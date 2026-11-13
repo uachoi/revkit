@@ -84,6 +84,10 @@
 | `libscn00monitor.so` | 루트·Frida·디버거·서명리포트·SPKI피닝 (RASP 단일 소비자) | 1 | ✅ done (2026-11-13) |
 | 그 외 (libreactnative/hermes/rn* 등) | React Native/Hermes 런타임 — 보안로직 아님 | — | skip (분석 불필요) |
 
+### Java 레이어 태깅 (✅ done 2026-11-13, `/rev-jadx`)
+`java_analysis.md §9`에 criterion ID 정식 태깅 완료: RES-ROOT-01 / **RES-EMU-01** / RES-DBG-01 / RES-HOOK-01 / **RES-INTEG-03** / RES-INTEG-01·02 / NET-PIN-01.
+→ 1차 native 단독에서 "미발견"이던 **에뮬레이터·attestation 공백이 Java층(looksLikeEmulator·keyAttestationChain)에서 해소**. Java 탐지는 네이티브의 fallback 미러 구조.
+
 ---
 
 ## 5. 작업 환경 상태 (step 1·2)
