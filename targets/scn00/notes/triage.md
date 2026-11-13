@@ -75,7 +75,14 @@
      "...\scratchpad\jadx\bin\jadx.bat" --no-res --no-debug-info -d "_work\jadx-out" scn00\classes.dex scn00\classes2.dex scn00\classes3.dex
      ```
    - 디컴파일 후 확인할 것: `Scn00MonitorModule` companion init의 정확한 `loadLibrary` 라인, 5개 native 메서드 호출부, `observedSpki`(피닝 대상 공개키), `SecurityStatusModule` 연동.
-2. **Ghidra (step: 사용자 요청 대기)** — `.so` 18KB 소형. `JNI_OnLoad` 및 5개 export 함수의 서명 로직/키 상수 분석. Ghidra MCP 연결은 사용자가 Ghidra 기동 후 별도 요청 예정.
+2. **Ghidra (step: ✅ done 2026-11-13)** — `libscn00monitor.so` 1차 분석 완료 → [`notes/native/libscn00monitor.so.md`](native/libscn00monitor.so.md) (메타블록/criterion ID 태깅 포맷). 발견: RES-ROOT-02, RES-DBG-02, RES-HOOK-01, RES-INTEG-01 + [신규후보] NETWORK 피닝. 다음: `/rev-verify scn00`.
+
+## 네이티브 전수 체크리스트 (우선순위/상태)
+
+| .so | 신호 | 우선순위 | 상태 |
+|---|---|---|---|
+| `libscn00monitor.so` | 루트·Frida·디버거·서명리포트·SPKI피닝 (RASP 단일 소비자) | 1 | ✅ done (2026-11-13) |
+| 그 외 (libreactnative/hermes/rn* 등) | React Native/Hermes 런타임 — 보안로직 아님 | — | skip (분석 불필요) |
 
 ---
 
