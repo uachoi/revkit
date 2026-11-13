@@ -20,9 +20,11 @@ allowed-tools: Bash(jadx:*), Read, Glob, Grep, Write, Edit
 - `jadx-out/sources`에서 `System.loadLibrary` / `System.load` 를 **전부** 찾아, 로드되는 `.so`와 호출 클래스를 표로.
 - `native` 메서드 선언을 전부 찾아 어느 `.so`에 속하는지 매핑.
 - 각 `.so`를 **인증/암호/anti-tamper 관련 신호**(문자열, 메서드명, JNI 등록 수)로 점수화해 **분석 우선순위**를 매긴다.
+- 각 신호를 **criterion 패밀리에 매핑**한다(예: su 문자열→RES-ROOT, ptrace→RES-DBG, frida 문자열→RES-HOOK, 서명검사→RES-INTEG). 기준(`docs/criteria/`)의 어떤 criterion에도 안 걸리는 신호는 `미매핑`으로 표시(2차 커버리지 입력).
 - `.so`가 여러 개면 **전수 체크리스트**(so 이름 / 신호 / 우선순위 / 상태 pending)를 triage.md 맨 아래에 둬서 이후 누락을 방지한다.
 
 ## 3. Java 호출흐름 → `targets/$1/notes/java_analysis.md`
 - 우선순위 상위 `.so`를 부르는 클래스의 호출 흐름, 서버 전송 로직, 하드코딩 시크릿/엔드포인트를 정리.
+- Java 레벨 발견(Java 루트/디버거 탐지, 하드코딩 시크릿 등)은 `docs/criteria/_template.md`의 **메타블록 형식**(`### [RES-XXX-NN]` + 신뢰도 `가설` + 표준/위치/근거/우회(가설)/2차 메모)으로 적고 criterion ID를 붙인다. 안 맞으면 `### [신규후보]`.
 
 끝나면 "다음: Ghidra CodeBrowser에 타깃 `.so` 열고 `/rev-native $1`" 안내.

@@ -34,3 +34,7 @@ replay_pid*.log
 !targets/**/frida/
 !targets/**/frida/**
 !targets/INDEX.md
+
+# ===== IDE 설정 (머신 전용) =====
+.idea/
+*.iml
