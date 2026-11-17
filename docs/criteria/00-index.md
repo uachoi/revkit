@@ -68,6 +68,7 @@ criteria 문서의 '탐지 신호'를 따라        각 발견을 그 criterion�
 
 - **1차**는 `/rev-jadx`·`/rev-native`가 수행하며 **발견마다 criterion ID를 태깅**한다(배선 완료).
 - **2차**는 `/rev-verify`([`.claude/commands/rev-verify.md`](../../.claude/commands/rev-verify.md))가 태깅된 발견을 criterion에 1:1 대조해 재분류한다.
+- **동적(확정 승급)**은 `/rev-frida`([워크플로우](../frida/00-workflow.md))가 2차의 `가설`을 런타임 재현해 `확정`으로 올린다 — 수동 게이트(기기·frida-server 필요), `/rev-verify` 뒤·`/rev-report` 앞.
 
 ---
 
