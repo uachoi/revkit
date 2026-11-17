@@ -174,7 +174,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:238` `appLayerDetectsRoot()` (+ ROOT_PATHS `:598`, ROOT_MANAGER_PACKAGES `:599`)
 - 근거: `Build.TAGS` `test-keys`, ROOT_PATHS 14종(`/system/bin/su`,`/data/adb/magisk`,`Superuser.apk`…), `whichSu()`=`Runtime.exec("which su")` `:393`, ROOT_MANAGER_PACKAGES 12종(magisk/kernelsu/apatch/supersu…) `isPackageInstalled` `:410`, `hasUnsafeBootProperties()`(ro.debuggable/ro.secure) `:303`, `mountsContainRootArtifacts()`.
 - 우회(가설): `appLayerDetectsRoot`/`fileExists`/`whichSu`/`isPackageInstalled` 후킹해 false. **단 nativeRootEvidence(네이티브)와 쌍** — 둘 다 무력화 필요.
-- 2차 메모:
+- 2차 메모: **가설** (정상경로 태깅). FP함정(죽은 상수·import만) 배제 — ROOT_PATHS/패키지가 실제 `fileExists`/`isPackageInstalled` 호출로 소비됨. 미충족(승급): Frida로 네이티브+Java 쌍 동시 무력화 후 탐지 우회 재현. [verify.md 2026-11-17]
 
 ### [RES-EMU-01] Java 에뮬레이터/가상환경 탐지  ← (이전 "미발견" 공백 해소)
 - 신뢰도: 가설
@@ -182,7 +182,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:267` `looksLikeEmulator()` (appLayerDetectsRoot가 호출)
 - 근거: `Build.FINGERPRINT` generic/vbox/test-keys, `MODEL` google_sdk/emulator/"android sdk built for", `MANUFACTURER` genymotion, `HARDWARE` goldfish/ranchu/vbox, `PRODUCT` sdk_gphone, `fileExists("/dev/qemu_pipe")`,`"/dev/socket/qemud")`.
 - 우회(가설): `Build` 필드 getter·`fileExists` 후킹으로 실기기 위장.
-- 2차 메모:
+- 2차 메모: **가설 (공백 해소 확정)**. 1차 native 노트가 "RES-EMU-01 미발견"으로 적었으나 **Java층 `looksLikeEmulator()` 실재** → native-only 커버리지 오판 교정. FP함정(Build가 애널리틱스용) 배제 — generic/vbox/goldfish 토큰 비교가 appLayerDetectsRoot 판정에 합류. 미충족: Frida Build 위장 후 통과 재현. [verify.md 2026-11-17]
 
 ### [RES-DBG-01] Java 디버거 탐지
 - 신뢰도: 가설
@@ -190,7 +190,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:431` `appLayerDetectsDebugger()` + `tracerPid()` `:687`
 - 근거: `Debug.isDebuggerConnected()` ∥ `Debug.waitingForDebugger()` ∥ `tracerPid()>0`(`/proc/self/status` `TracerPid:` 파싱 `:703`). 결과는 buildMonitorVerdict 맵/서명리포트로.
 - 우회(가설): `Debug.isDebuggerConnected`·`tracerPid` 후킹→음성.
-- 2차 메모:
+- 2차 메모: **가설**. FP함정(`BuildConfig.DEBUG`·로그게이팅) 배제 — 결과가 buildMonitorVerdict/서명리포트로 소비됨. native RES-DBG-02(TracerPid)의 Java 미러. 미충족: 디버거 attach 상태에서 Frida로 양측 음성화 재현. [verify.md 2026-11-17]
 
 ### [RES-HOOK-01] Java Frida/계측 탐지
 - 신뢰도: 가설
@@ -198,7 +198,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:423` `appLayerDetectsFrida()` (+ `nativeDetectsFrida()` fallback `:419`)
 - 근거: `tcpPortOpen(27042)`∥`(27043)`, `mapsContainsAny("frida","gum-js","gadget")`, (fallback) `threadNamesContainAny("gum-js-loop","gmain","gdbus")`.
 - 우회(가설): 포트/ maps/스레드명 체크 후킹. 네이티브 RES-HOOK-01과 쌍.
-- 2차 메모:
+- 2차 메모: **가설**. FP함정(maps 읽기 자체) 배제 — frida/gum-js/gadget 토큰 비교·27042/43 포트 명시. **다층(native 3경로 + Java) 이라 일부만 막으면 FN** 경고 유지. 미충족: 전 경로 음성화 후 우회 재현(동적). [verify.md 2026-11-17]
 
 ### [RES-INTEG-03] 하드웨어 키 attestation (F34)  ← (이전 "미발견" 공백 해소)
 - 신뢰도: 가설
@@ -206,7 +206,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:194` `keyAttestationChain(challenge)` → 맵 `attestationChain`
 - 근거: Android Keystore 키 attestation 체인(Base64)을 challenge로 생성해 서버 전송. **서버 검증 여부가 강도 좌우**(FP함정: 클라만으론 판단 금지).
 - 우회(가설): 서버검증형이면 우회 난이도 상향. 클라 판단형이면 결과 후킹.
-- 2차 메모:
+- 2차 메모: **가설 (공백 해소 확정)**. 1차 native 노트의 "RES-INTEG-03 attestation 미발견" 교정 — Java `keyAttestationChain()` 실재. criterion FP함정대로 **서버 검증 여부가 강도를 좌우** → 클라 코드만으론 확정/기각 불가. 미충족: integrity/attestation 토큰이 서버에서 실제 강제되는지 트래픽 확인. [verify.md 2026-11-17]
 
 ### [RES-INTEG-01/02] Java APK 서명 자체검증 (F38, anti-tamper)
 - 신뢰도: 가설
@@ -214,7 +214,7 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 위치: `Scn00MonitorModule.java:554` `appLayerDetectsTamper()` → `signingCertSha256()` `:507`, 비교상수 `OFFICIAL_CERT_SHA256` `:65`
 - 근거: 자기 APK 서명 cert SHA-256 ≠ `fac61745…033b9c` 이면 변조로 판정(`StringsKt.equals(..., OFFICIAL_CERT_SHA256)` `:558`). **native F38(해시산출)의 Java측 비교 상수** — 1차 native 노트의 "비교상수 Java층" 추정 확정.
 - 우회(가설): `signingCertSha256` 반환을 정품 해시로 후킹, 또는 비교 분기. **재패키징 1순위 장애물**.
-- 2차 메모:
+- 2차 메모: **가설 (정적 교차확인 강함)**. native F38(해시 산출) ↔ Java `OFFICIAL_CERT_SHA256` 로컬 비교(`:558`)로 **1차 native "서버검증형 추정"을 "로컬 비교 + 서버 이중" 으로 정밀화**. 정적 근거는 확정에 가까우나 승급조건상 ① 서버 강제 여부 ② Frida 서명위장 우회 재현 미충족 → 가설 유지. [verify.md 2026-11-17]
 
 ### [NET-PIN-01] Java 인증서 SPKI 피닝 관측 (F37)
 - 신뢰도: 가설
@@ -223,6 +223,6 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - 근거: `lab.eqst.co.kr:8406` 로 직접 TLS → 서버 leaf 공개키 SHA-256 == `PINNED_SPKI`(`2c5c6584…aa77f`) 비교.
 - **오탐함정 주의**: 여기 `$observedSpki$trustAll$1`(모든 cert 수락 X509TrustManager `:440`) + accept 하는 HostnameVerifier `:457` 는 **NET-TRUST-01 취약점이 아니다** — 앱 실트래픽이 아니라 **피닝 지문 관측용 probe**다. TrustAll이지만 수집한 지문을 PINNED_SPKI와 대조하는 용도. (실 API 트래픽의 TrustManager가 아님)
 - 우회(가설): 네이티브 NET-PIN-02와 쌍. Java측은 `appLayerVerifyPinnedCert`/`observedSpki` 후킹. 단 **Burp 중계 시 지문 바뀌어 탐지** → 네이티브/Java 양쪽 피닝 무력화 + HMAC 키 위조 필요.
-- 2차 메모:
+- 2차 메모: **가설** (NET-PIN-01 정식 태깅). **동반 NET-TRUST-01 후보는 기각** — `$observedSpki$trustAll$1`(`:440`) TrustAll + accept HostnameVerifier(`:457`)는 criterion NET-TRUST-01의 오탐함정 ②(핀 지문을 직접 측정하려는 커스텀 TrustManager)에 정확히 해당. 앱 실 API 트래픽의 TrustManager가 아니라 **피닝 지문 관측 probe** → 취약점 아님. 미충족(PIN-01 승급): Frida unpinning 후 Burp 중계 성립 재현. [verify.md 2026-11-17]
 
 > **하드코딩 상수(참고)**: `OFFICIAL_CERT_SHA256`, `PINNED_HOST/PORT`, `PINNED_SPKI` 모두 Java 상수로 평문 노출(`:65-74`). 네이티브 HMAC 키(`SCN00-monitor-hmac-key-v1-eqstlb`, §6)와 합쳐 **RASP 신뢰근거가 전부 클라이언트에 상수로 존재** → 리포트 위조의 토대.
