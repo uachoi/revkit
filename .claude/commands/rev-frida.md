@@ -37,6 +37,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 - 템플릿을 복사해 **대상 심볼로 파라미터화**한다: `_bootstrap.js`의 `TARGET_SO`, `collector-neutralize.js`의 `NATIVE_COLLECTORS`/`JAVA_DETECTORS`, `report-forge.js`의 `HMAC_KEY`·payload 포맷을 native/java 노트의 실제 심볼·상수로 채운다.
 - 파일명은 목적별로: `collector-neutralize.js`, `report-forge.js`(필요 시 criterion별 분리). `targets/$1/frida/`는 **커밋 대상**(`.gitignore` 예외).
 - **실제 주소 하드코딩 금지** — export 이름/클래스.메서드/상수로 쓴다(주소는 리베이스마다 바뀜). 주소가 꼭 필요하면 `Module.getBaseAddress()` 상대 오프셋으로.
+- **네이티브는 풀 JNI export 이름으로 채운다** — `Java_<패키지_언더스코어>_<클래스>_<메서드>`(짧은 이름은 `findExportByName` 실패). RegisterNatives 동적등록형이면 export가 없으니 그 지점을 후킹. (scn00 스모크에서 풀 JNI 이름 resolve 실증됨 — `targets/scn00/frida/smoke.js` 참조.)
 
 ## 4. 실행 방법 안내 (사용자가 수동 실행)
 - **기본(spawn + 조기후킹)**: `frida -U -f <패키지> -l targets/$1/frida/<script>.js` — CLI가 로드 후 자동 resume. 스크립트 최상단 `android_dlopen_ext` 후킹이 **탐지 루프 전에** 선점(`_bootstrap.js`).

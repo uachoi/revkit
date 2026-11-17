@@ -21,11 +21,13 @@ var TARGET_SO = 'libXXX.so';   // 예시: 'libscn00monitor.so'
 var VERBOSE   = true;
 
 // 네이티브 collector export: 반환이 "수집된 증거 문자열"인 함수들.
-// 예시(scn00): ['nativeRootEvidence','nativeFridaEvidence','nativeDebuggerEvidence']
+// ❗ JNI 네이티브는 풀 export 이름으로 써야 resolve됨(짧은 이름은 findExportByName 실패).
+//    형식: Java_<패키지_언더스코어>_<클래스>_<메서드>  (scn00 스모크에서 [JNI-full] 확인됨)
+//    RegisterNatives 동적등록형이면 export가 없으니 그 지점을 따로 후킹.
 var NATIVE_COLLECTORS = [
-  // 'nativeRootEvidence',
-  // 'nativeFridaEvidence',
-  // 'nativeDebuggerEvidence'
+  // 'Java_kr_co_eqst_pay_s00_Scn00MonitorModule_nativeRootEvidence',
+  // 'Java_kr_co_eqst_pay_s00_Scn00MonitorModule_nativeFridaEvidence',
+  // 'Java_kr_co_eqst_pay_s00_Scn00MonitorModule_nativeDebuggerEvidence'
 ];
 
 // Java 탐지 메서드: {클래스, 메서드, 반환값}. 반환 타입에 맞게 clean 값 지정.
