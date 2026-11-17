@@ -20,7 +20,7 @@ allowed-tools: Bash(jadx:*), Read, Glob, Grep, Write, Edit
 - `jadx-out/sources`에서 `System.loadLibrary` / `System.load` 를 **전부** 찾아, 로드되는 `.so`와 호출 클래스를 표로.
 - `native` 메서드 선언을 전부 찾아 어느 `.so`에 속하는지 매핑.
 - 각 `.so`를 **인증/암호/anti-tamper 관련 신호**(문자열, 메서드명, JNI 등록 수)로 점수화해 **분석 우선순위**를 매긴다.
-- 각 신호를 **criterion 패밀리에 매핑**한다(예: su 문자열→RES-ROOT, ptrace→RES-DBG, frida 문자열→RES-HOOK, 서명검사→RES-INTEG). 기준(`docs/criteria/`)의 어떤 criterion에도 안 걸리는 신호는 `미매핑`으로 표시(2차 커버리지 입력).
+- 각 신호를 **criterion 패밀리에 매핑**한다(예: su 문자열→RES-ROOT, ptrace→RES-DBG, frida 문자열→RES-HOOK, 서명검사→RES-INTEG, `SecretKeySpec`/하드코딩키→CRY-HARDKEY, DES/ECB/MD5→CRY-ALGO, `BiometricPrompt`→AUTH-BIO, OAuth/redirect→AUTH-OAUTH, PIN KDF→CRY-KDF·AUTH-PIN). 기준(`docs/criteria/`)의 어떤 criterion에도 안 걸리는 신호는 `미매핑`으로 표시(2차 커버리지 입력).
 - `.so`가 여러 개면 **전수 체크리스트**(so 이름 / 신호 / 우선순위 / 상태 pending)를 triage.md 맨 아래에 둬서 이후 누락을 방지한다.
 
 ## 3. Java 호출흐름 → `targets/$1/notes/java_analysis.md`

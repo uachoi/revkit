@@ -5,7 +5,7 @@
 
 - 축: **OWASP MASVS v2.x** 8개 카테고리
 - 각 criterion 작성 형식: [`_template.md`](./_template.md)
-- 현재 작성 범위: **RESILIENCE** ([`10-resilience.md`](./10-resilience.md)) + **NETWORK** ([`50-network.md`](./50-network.md)). 나머지 6개 카테고리는 예정.
+- 현재 작성 범위: **RESILIENCE** ([`10-resilience.md`](./10-resilience.md)) · **NETWORK** ([`50-network.md`](./50-network.md)) · **CRYPTO** ([`30-crypto.md`](./30-crypto.md)) · **AUTH** ([`40-auth.md`](./40-auth.md)). 나머지 4개 카테고리는 예정.
 
 > ### criteria는 리버싱을 대체하지 않는다 (중요)
 > 분석의 **메인 축은 여전히 분석가의 리버싱**이다 — 디컴파일 → 함수명 검색 → 디컴파일 코드·분기 분석 → 우회 지점 특정 → 앱 변조 / Frida 후킹. MASVS criteria는 그 작업을 **대체하는 게 아니라 두 가지로 얹힌다**:
@@ -21,8 +21,8 @@
 | 카테고리 | 무엇을 보나 | 주 분석 위치 | 적용 레벨 | 커버리지 | 파일 |
 |---|---|---|---|---|---|
 | **STORAGE** | 민감 데이터 저장(SharedPrefs, SQLite, 파일, 로그, 클립보드, 백업) | jadx, manifest | L1/L2 | 예정 | `20-storage.md` |
-| **CRYPTO** | 암호 구현(하드코딩 키, 약한 알고리즘 DES/ECB/MD5, IV 재사용, 안전치 않은 난수, 커스텀 크립토) | jadx, ghidra | L1/L2 | 예정 | `30-crypto.md` |
-| **AUTH** | 인증·인가(로컬 인증, 생체, 세션, OAuth, PIN/KDF) | jadx, ghidra | L1/L2 | 예정 | `40-auth.md` |
+| **CRYPTO** | 암호 구현(하드코딩 키, 약한 알고리즘 DES/ECB/MD5, IV 재사용, 안전치 않은 난수, 커스텀 크립토, KDF·키저장) | jadx, ghidra | L1/L2 | **작성됨** | [`30-crypto.md`](./30-crypto.md) |
+| **AUTH** | 인증·인가(로컬 인증, 생체, 세션, OAuth, PIN/KDF, step-up) | jadx, ghidra | L1/L2 | **작성됨** | [`40-auth.md`](./40-auth.md) |
 | **NETWORK** | TLS, 인증서 피닝, 평문 통신 | jadx, ghidra, manifest | L1/L2 | **작성됨** | [`50-network.md`](./50-network.md) |
 | **PLATFORM** | IPC·exported 컴포넌트·WebView·권한·딥링크·인텐트 | manifest, jadx | L1/L2 | 예정 | `60-platform.md` |
 | **CODE** | 코드 품질(인젝션, 오래된 라이브러리/CVE, debuggable 플래그, 메모리 안전) | manifest, jadx, 의존성 | L1/L2 | 예정 | `70-code.md` |

@@ -12,13 +12,13 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 
 ## 전제
 - 1차 산출물 존재: `targets/$1/notes/native/*.md`, `targets/$1/notes/java_analysis.md`, `targets/$1/notes/triage.md`.
-- 기준 문서: `docs/criteria/10-resilience.md`, `docs/criteria/50-network.md`(+ `_template.md`, `00-index.md`). 현재 RESILIENCE + NETWORK 범위.
+- 기준 문서: `docs/criteria/10-resilience.md`, `docs/criteria/50-network.md`, `docs/criteria/30-crypto.md`, `docs/criteria/40-auth.md`(+ `_template.md`, `00-index.md`). 현재 RESILIENCE + NETWORK + CRYPTO + AUTH 범위.
 - Ghidra MCP가 붙어 있으면 어셈블리 교차대조까지, 아니면 정적 노트 기반으로만 검증하고 "동적/어셈블리 확인 필요"로 남긴다.
 
 ## 1. 발견 취합 + criterion 확인
 1. `notes/native/*.md`·`java_analysis.md`에서 발견을 전부 모은다.
 2. **정상 경로**: 각 발견은 criterion ID(`[RES-XXX-NN]`) 또는 `[신규후보]`가 이미 붙어 있다 — 그대로 사용한다.
-   - **폴백(레거시 노트 전용)**: ID가 없는 발견은 `10-resilience.md`/`50-network.md`의 **탐지 신호**로 역매핑해 후보 ID를 붙이되, 반드시 `태깅 누락 — 역매핑 참고용, 신뢰도 상한 가설`로 표기한다. 이런 발견은 2차에서 **`확정`으로 승급 금지**(상한 `가설`). 역매핑이 필요했다는 사실 자체를 "1차 태깅 누락"으로 공백 리포트에 남긴다.
+   - **폴백(레거시 노트 전용)**: ID가 없는 발견은 `10-resilience.md`/`50-network.md`/`30-crypto.md`/`40-auth.md`의 **탐지 신호**로 역매핑해 후보 ID를 붙이되, 반드시 `태깅 누락 — 역매핑 참고용, 신뢰도 상한 가설`로 표기한다. 이런 발견은 2차에서 **`확정`으로 승급 금지**(상한 `가설`). 역매핑이 필요했다는 사실 자체를 "1차 태깅 누락"으로 공백 리포트에 남긴다.
    - **상한 예외(정적 증명가능 결함)**: 역매핑 발견이라도 **정적으로 증명 가능한 사실**(예: .rodata에서 복원해 2경로 교차검증한 하드코딩 키, 코드 내 상수 비교로 결론나는 결함)은 **criterion ID로 정식 재태깅한 뒤 `확정` 승급 허용**한다. 상한 `가설` 규칙은 **추론 기반** 역매핑에만 적용된다. (scn00의 HMAC 키 `SCN00-monitor-hmac-key-v1-eqstlb` 유출이 이 예외에 해당 — 동적 재현 없이도 정적으로 확정 가능.)
 
 ## 2. 발견별 정오탐 재분류 (확정 / 가설 / 기각)
@@ -29,7 +29,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 > CLAUDE.md 규칙: 난독화 `.so` 발견은 어셈블리 교차대조 없이는 `확정` 금지. 근거 없으면 `가설` 유지.
 
 ## 3. 커버리지 공백 점검 (FN 방지)
-각 기준 문서(`10-resilience.md`, `50-network.md`) 맨 아래 **커버리지 체크리스트**를 기준으로, 1차에서 **아예 안 본 criterion**을 나열한다.
+각 기준 문서(`10-resilience.md`, `50-network.md`, `30-crypto.md`, `40-auth.md`) 맨 아래 **커버리지 체크리스트**를 기준으로, 1차에서 **아예 안 본 criterion**을 나열한다.
 - **단일 노트로 공백 단정 금지 (교차 확인 필수)**: 어떤 criterion을 "미분석/부재"로 판정하기 전에 **`native/*.md`와 `java_analysis.md`를 둘 다** 확인한다. 한 레이어에 없다고 공백이 아니다. (scn00: native 단독 판정이 attestation을 "미발견"으로 잘못 적었으나 Java층에 `keyAttestationChain`이 실재 — 네이티브 방어가 Java fallback과 쌍을 이루는 경우가 흔하다.)
 - 각 미분석 항목에 "왜 공백인지"(해당 신호 미탐 / `.so` 미분석 / 난독화로 보류)를 한 줄.
 - RESILIENCE-3(난독화) 수준을 평가해 전체 발견 신뢰도 보정이 필요한지 명시.
@@ -50,5 +50,5 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 ## 주의
 - 이 패스는 **1차 결과의 재검토**지, 새 정적/동적 분석이 아니다. 어셈블리·런타임 근거가 노트에 없으면 `확정`으로 올리지 말 것.
 - **역매핑은 폴백**일 뿐 정상 경로가 아니다. 역매핑이 자주 필요하면 1차(`/rev-native`·`/rev-jadx`)의 태깅이 누락되고 있다는 신호이므로 1차를 고친다.
-- 현재 RESILIENCE + NETWORK 범위. 타 카테고리 criteria가 추가되면 §전제·§1·§3의 기준 문서 목록을 확장한다.
+- 현재 RESILIENCE + NETWORK + CRYPTO + AUTH 범위. 타 카테고리(STORAGE/PLATFORM/CODE/PRIVACY) criteria가 추가되면 §전제·§1·§3의 기준 문서 목록을 확장한다.
 - 배선(정식 편입) 시: `/rev-native` 뒤, `/rev-report` 앞에 들어가는 단계로 `rev-all` 흐름에 삽입 예정.
