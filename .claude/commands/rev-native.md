@@ -7,7 +7,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 대상 `$1`의 네이티브 `.so`를 Ghidra MCP로 분석한다. **전제: Ghidra CodeBrowser에 분석할 `.so`가 import·analyze된 채 열려 있어야 한다**(`mcp__ghidra__*` 도구 사용). 안 열려 있으면 멈추고 안내만 한다.
 
 ## 분석 순서 — 빠짐없이 + 정확하게
-0. **분석 기준 로드** — `docs/criteria/10-resilience.md` 및 `docs/criteria/50-network.md`(네이티브 피닝 `NET-PIN-02`), `docs/criteria/30-crypto.md`(.so의 하드코딩 키 `CRY-HARDKEY-01`·커스텀 크립토 등 — 그 외 해당 카테고리 기준 문서 포함)를 **먼저 읽는다**. 각 criterion의 `탐지 신호`·`오탐 함정`이 "무엇을 어떤 패턴으로 찾을지"의 기준이고, 발견은 반드시 그 criterion ID로 태깅한다.
+0. **분석 기준 로드** — `docs/criteria/00-index.md`(전체 카테고리 지도)를 먼저 보고, **네이티브(.so)에서 실제로 걸리는 카테고리 문서**를 읽는다:
+   - `10-resilience.md` — RASP(루트/디버거/에뮬/후킹/무결성 탐지), 디바이스 바인딩, 앱 리소스 무결성(`RES-*`).
+   - `50-network.md` — 네이티브 피닝 `NET-PIN-02`, 네이티브 TLS/OpenSSL.
+   - `30-crypto.md` — `.so`의 하드코딩 키 `CRY-HARDKEY-01`·커스텀 크립토 `CRY-CUSTOM-01`·약한 알고리즘.
+   - `20-storage.md` — `.rodata` 하드코딩 시크릿 `STO-HARDCODE-01`(CRY-HARDKEY와 이중 관점), 키 저장.
+   - `70-code.md` — 네이티브 하드닝 `COD-COMPILER-01`(RELRO/Canary/PIE/NX/FORTIFY), 취약 네이티브 라이브러리 CVE `COD-DEPS-01`, 안전치 않은 동적 로딩 `COD-DYNLOAD-01`, 네이티브 버퍼 미검증 `COD-INPUT-01`.
+   > PLATFORM(60)·AUTH(40)·PRIVACY(80)은 주로 Java/manifest 영역 — 네이티브에서 해당 신호가 보이면 `00-index.md`에서 해당 문서를 열어 태깅한다(강제 로드는 위 5개).
+   각 criterion의 `탐지 신호`·`오탐 함정`이 "무엇을 어떤 패턴으로 찾을지"의 기준이고, 발견은 반드시 그 criterion ID로 태깅한다.
 0b. **기존 노트 먼저 읽기 (중복 분석 금지)** — 분석 전에 이 타깃의 기존 노트(`targets/$1/notes/java_analysis.md`, `notes/native/*.md`, 레거시 `notes/native_analysis.md`)를 **전부 읽는다**. 이미 분석된 내용은 **처음부터 다시 파지 말고**, criterion ID 태깅 + criteria 교차대조를 그 위에 **얹는다(보완·재태깅)**. 새로 확인할 것(미분석 함수·검증 보강)에만 Ghidra를 쓴다.
    > 근거: scn00 실측에서 `/rev-native`가 이미 `java_analysis.md`에 있던 네이티브 분석(HMAC 키 추출 포함)을 재생산했다. 목표는 **기존 분석 위에 태깅·검증 레이어를 입히는 것**이지, 재분석이 아니다.
 1. `targets/$1/notes/triage.md`의 **전수 체크리스트**에서 분석 대상 `.so` 목록과 우선순위를 읽는다.
@@ -18,7 +25,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit
    - 탐지/우회 포인트가 되는 분기(`if (detected != 0)` 류)를 식별하고, 함수 **리네임·코멘트**(리네임 전 백업, 디컴파일 추론은 Listing/어셈블리로 교차검증).
    - 결과를 **`targets/$1/notes/native/<so이름>.md`** 에 1파일로 기록(섞지 말 것). 발견은 반드시 `docs/criteria/_template.md`의 **메타블록 형식**으로 적는다:
      ```
-     ### [RES-XXX-NN] <제목>   (NETWORK 발견이면 [NET-XXX-NN], 해당 criterion 없으면 [신규후보])
+     ### [RES-XXX-NN] <제목>   (카테고리 접두어: RES/NET/CRY/STO/COD/AUTH/PLT/PRV — 해당 criterion 없으면 [신규후보])
      - 신뢰도: 가설              ← 1차는 전부 '가설' 고정(2차 rev-verify가 확정/기각으로 갱신)
      - 표준: MASVS-... / MASWE-... / MASTG-...
      - 위치: <so> <함수/주소> (ghidra)

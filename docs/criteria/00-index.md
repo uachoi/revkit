@@ -5,7 +5,7 @@
 
 - 축: **OWASP MASVS v2.x** 8개 카테고리
 - 각 criterion 작성 형식: [`_template.md`](./_template.md)
-- 현재 작성 범위: **RESILIENCE** ([`10-resilience.md`](./10-resilience.md)) · **NETWORK** ([`50-network.md`](./50-network.md)) · **CRYPTO** ([`30-crypto.md`](./30-crypto.md)) · **AUTH** ([`40-auth.md`](./40-auth.md)). 나머지 4개 카테고리는 예정.
+- 현재 작성 범위: **8개 카테고리 전부 작성됨** — RESILIENCE ([`10`](./10-resilience.md)) · STORAGE ([`20`](./20-storage.md)) · CRYPTO ([`30`](./30-crypto.md)) · AUTH ([`40`](./40-auth.md)) · NETWORK ([`50`](./50-network.md)) · PLATFORM ([`60`](./60-platform.md)) · CODE ([`70`](./70-code.md)) · PRIVACY ([`80`](./80-privacy.md)). (2026-11-18 완비, OWASP ID live 확인)
 
 > ### criteria는 리버싱을 대체하지 않는다 (중요)
 > 분석의 **메인 축은 여전히 분석가의 리버싱**이다 — 디컴파일 → 함수명 검색 → 디컴파일 코드·분기 분석 → 우회 지점 특정 → 앱 변조 / Frida 후킹. MASVS criteria는 그 작업을 **대체하는 게 아니라 두 가지로 얹힌다**:
@@ -20,17 +20,17 @@
 
 | 카테고리 | 무엇을 보나 | 주 분석 위치 | 적용 레벨 | 커버리지 | 파일 |
 |---|---|---|---|---|---|
-| **STORAGE** | 민감 데이터 저장(SharedPrefs, SQLite, 파일, 로그, 클립보드, 백업) | jadx, manifest | L1/L2 | 예정 | `20-storage.md` |
+| **STORAGE** | 민감 데이터 저장(SharedPrefs, SQLite, 파일, 로그, 클립보드, 백업) | jadx, manifest | L1/L2 | **작성됨** | [`20-storage.md`](./20-storage.md) |
 | **CRYPTO** | 암호 구현(하드코딩 키, 약한 알고리즘 DES/ECB/MD5, IV 재사용, 안전치 않은 난수, 커스텀 크립토, KDF·키저장) | jadx, ghidra | L1/L2 | **작성됨** | [`30-crypto.md`](./30-crypto.md) |
 | **AUTH** | 인증·인가(로컬 인증, 생체, 세션, OAuth, PIN/KDF, step-up) | jadx, ghidra | L1/L2 | **작성됨** | [`40-auth.md`](./40-auth.md) |
 | **NETWORK** | TLS, 인증서 피닝, 평문 통신 | jadx, ghidra, manifest | L1/L2 | **작성됨** | [`50-network.md`](./50-network.md) |
-| **PLATFORM** | IPC·exported 컴포넌트·WebView·권한·딥링크·인텐트 | manifest, jadx | L1/L2 | 예정 | `60-platform.md` |
-| **CODE** | 코드 품질(인젝션, 오래된 라이브러리/CVE, debuggable 플래그, 메모리 안전) | manifest, jadx, 의존성 | L1/L2 | 예정 | `70-code.md` |
+| **PLATFORM** | IPC·exported 컴포넌트·WebView·권한·딥링크·인텐트 | manifest, jadx | L1/L2 | **작성됨** | [`60-platform.md`](./60-platform.md) |
+| **CODE** | 코드 품질(인젝션, 오래된 라이브러리/CVE, 동적로딩, 네이티브 하드닝) | manifest, jadx, 의존성 | L1/L2 | **작성됨** | [`70-code.md`](./70-code.md) |
 | **RESILIENCE** | 안티리버싱·변조탐지(루트/디버거/에뮬/후킹 탐지, 무결성, 난독화, 디바이스 바인딩) | ghidra, jadx | **R** | **작성됨** | [`10-resilience.md`](./10-resilience.md) |
-| **PRIVACY** | 데이터 최소화·추적·동의·민감정보 노출 | manifest, jadx, 트래커 | L1/L2 | 예정 | `80-privacy.md` |
+| **PRIVACY** | 데이터 최소화·추적·동의·민감정보 노출 | manifest, jadx, 트래커 | P | **작성됨** | [`80-privacy.md`](./80-privacy.md) |
 
-> **지금 툴의 무게중심은 RESILIENCE**(네이티브 RASP·루트/Frida/디버거 탐지·서명검사)에 있다.
-> 고도화의 방향은 (1) RESILIENCE에서 2-pass를 먼저 완성 → (2) CRYPTO/NETWORK/AUTH로 확장 → (3) 나머지 뼈대 순이다.
+> **지금 툴의 무게중심은 RESILIENCE**(네이티브 RASP·루트/Frida/디버거 탐지·서명검사)에 있고, **8개 카테고리 criteria가 모두 작성**돼 커버리지 공백 점검이 전 카테고리 대상으로 가능하다.
+> 확장 경로였던 (1) RESILIENCE 2-pass 완성 → (2) CRYPTO/NETWORK/AUTH → (3) STORAGE/PLATFORM/CODE/PRIVACY 는 **2026-11-18 완료**.
 
 ### 적용 레벨 (MASVS 검증 레벨)
 

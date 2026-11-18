@@ -12,7 +12,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 
 ## 전제
 - 1차 산출물 존재: `targets/$1/notes/native/*.md`, `targets/$1/notes/java_analysis.md`, `targets/$1/notes/triage.md`.
-- 기준 문서: `docs/criteria/10-resilience.md`, `docs/criteria/50-network.md`, `docs/criteria/30-crypto.md`, `docs/criteria/40-auth.md`(+ `_template.md`, `00-index.md`). 현재 RESILIENCE + NETWORK + CRYPTO + AUTH 범위.
+- 기준 문서: **8개 카테고리 전부** — `docs/criteria/10-resilience.md`·`20-storage.md`·`30-crypto.md`·`40-auth.md`·`50-network.md`·`60-platform.md`·`70-code.md`·`80-privacy.md`(+ `_template.md`, `00-index.md`). 실제로 로드할 문서는 **1차 노트에 등장한 criterion 접두어(RES/STO/CRY/AUTH/NET/PLT/COD/PRV)에 해당하는 것 + 공백 점검용으로 `00-index.md`의 전체 체크리스트**다.
 - Ghidra MCP가 붙어 있으면 어셈블리 교차대조까지, 아니면 정적 노트 기반으로만 검증하고 "동적/어셈블리 확인 필요"로 남긴다.
 
 ## 1. 발견 취합 + criterion 확인
@@ -29,7 +29,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 > CLAUDE.md 규칙: 난독화 `.so` 발견은 어셈블리 교차대조 없이는 `확정` 금지. 근거 없으면 `가설` 유지.
 
 ## 3. 커버리지 공백 점검 (FN 방지)
-각 기준 문서(`10-resilience.md`, `50-network.md`, `30-crypto.md`, `40-auth.md`) 맨 아래 **커버리지 체크리스트**를 기준으로, 1차에서 **아예 안 본 criterion**을 나열한다.
+**8개 기준 문서 전부**(`10-resilience`·`20-storage`·`30-crypto`·`40-auth`·`50-network`·`60-platform`·`70-code`·`80-privacy`) 맨 아래 **커버리지 체크리스트**를 기준으로, 1차에서 **아예 안 본 criterion**을 나열한다. 타깃 프로파일(금융/일반)에 따라 우선순위는 다르되 **공백 점검은 전 카테고리 대상**이다(`00-index.md` 프로파일 규칙).
+- **manifest/리소스 의존 공백 주의**: STORAGE(백업·FLAG_SECURE)·PLATFORM(exported·딥링크·intent-filter)·CODE(min/targetSDK)·PRIVACY(권한)는 **manifest/리소스가 있어야** 판정 가능. `/rev-jadx`가 `--no-res`로 돌면 이들은 "미분석(manifest 미추출)"로 공백 표기하고, `--no-res` 없이 재실행 또는 manifest 별도 추출을 다음 단계로 지목한다.
+- **리버싱 범위 밖 항목 구분**: PRIVACY의 정책/고지/선언(PRV-TRANSPARENCY-01 등)은 코드만으로 판정 불가 → "외부 대조 필요"로 분리 표기(공백과 구분).
 - **단일 노트로 공백 단정 금지 (교차 확인 필수)**: 어떤 criterion을 "미분석/부재"로 판정하기 전에 **`native/*.md`와 `java_analysis.md`를 둘 다** 확인한다. 한 레이어에 없다고 공백이 아니다. (scn00: native 단독 판정이 attestation을 "미발견"으로 잘못 적었으나 Java층에 `keyAttestationChain`이 실재 — 네이티브 방어가 Java fallback과 쌍을 이루는 경우가 흔하다.)
 - 각 미분석 항목에 "왜 공백인지"(해당 신호 미탐 / `.so` 미분석 / 난독화로 보류)를 한 줄.
 - RESILIENCE-3(난독화) 수준을 평가해 전체 발견 신뢰도 보정이 필요한지 명시.
@@ -50,5 +52,5 @@ allowed-tools: Read, Glob, Grep, Write, Edit
 ## 주의
 - 이 패스는 **1차 결과의 재검토**지, 새 정적/동적 분석이 아니다. 어셈블리·런타임 근거가 노트에 없으면 `확정`으로 올리지 말 것.
 - **역매핑은 폴백**일 뿐 정상 경로가 아니다. 역매핑이 자주 필요하면 1차(`/rev-native`·`/rev-jadx`)의 태깅이 누락되고 있다는 신호이므로 1차를 고친다.
-- 현재 RESILIENCE + NETWORK + CRYPTO + AUTH 범위. 타 카테고리(STORAGE/PLATFORM/CODE/PRIVACY) criteria가 추가되면 §전제·§1·§3의 기준 문서 목록을 확장한다.
+- **MASVS 8개 카테고리 전부 작성됨**(2026-11-18): RESILIENCE·STORAGE·CRYPTO·AUTH·NETWORK·PLATFORM·CODE·PRIVACY. §전제·§1·§3는 전 카테고리 기준으로 동작한다(개별 로드는 1차 노트의 criterion 접두어 + `00-index.md` 공백 체크리스트에 따름).
 - 배선(정식 편입) 시: `/rev-native` 뒤, `/rev-report` 앞에 들어가는 단계로 `rev-all` 흐름에 삽입 예정.
