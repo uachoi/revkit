@@ -1,4 +1,4 @@
-# 2차 검증 결과 — scn00 (RESILIENCE + NETWORK)
+# 2차 검증 결과 — scn00 (RESILIENCE + NETWORK + PLATFORM)
 
 > 2차 패스: **재실행 2026-11-17** (최초 2026-11-13). 입력: `notes/native/libscn00monitor.so.md`(1차 태깅), `notes/java_analysis.md §9`(이번엔 **정식 criterion ID 태깅 완료** — 역매핑 폴백 불필요), `notes/triage.md`
 > 기준: `docs/criteria/10-resilience.md` + `docs/criteria/50-network.md` · Ghidra MCP 연결됨(`pong`, 네이티브 어셈블리 교차대조는 11-13 패스에서 수행)
@@ -52,10 +52,17 @@
 | RES-DBG-03 타이밍 | 미발견 | clock_gettime 류 임계비교 신호 없음 — 이 앱 미구현 추정(부재) |
 | RES-HOOK-02 Xposed/Substrate | 미발견 | de.robv/substrate 신호 없음 — Frida 중심, Xposed 전용분기 부재 추정 |
 | RES-BIND-01 디바이스 바인딩 | 미발견 | ANDROID_ID/Serial 세션바인딩 신호 미탐(단, keyAttestation이 기기성 보증 일부 대체) |
-| **NET-CLEAR-01 평문** | **미분석(진짜 공백)** | manifest/network_security_config 미확인 — `/rev-jadx`가 `--no-res`라 NSC 미추출. **manifest·NSC 확인 필요** |
-| **NET-TLS-01 약한 TLS** | 미분석 | 앱 실 API 클라이언트(OkHttp 등)의 프로토콜/cipher 미확인(모니터 모듈 밖) |
+| **NET-CLEAR-01 평문** | **분석됨(가설)** ✅공백해소 | 2026-11-18 manifest 디코드: `usesCleartextTraffic="true"` + NSC 부재 = 전역 평문 허용(config 정적확정). 단 실 엔드포인트 전부 HTTPS·평문 http 엔드포인트 미관측 → 실전송 확정엔 동적 캡처 필요. [java_analysis §10] |
+| **NET-TLS-01 약한 TLS** | **분석됨(가설)** ✅공백해소 | RN(OkHttp) 기본, 커스텀 다운그레이드 신호 없음. 엔드포인트 `lab.eqst.co.kr:8406`(비표준 포트 HTTPS). 협상 프로토콜/cipher는 동적 핸드셰이크 캡처로만 확정. [java_analysis §10] |
 | NET-TRUST-01 | 분석됨(기각) | 위 — probe 오탐 차단 |
-| **NET-MITM-01 프록시탐지** | 미분석 | http.proxyHost/VPN(tun0) 검사 유무 미확인 |
+| **NET-MITM-01 프록시탐지** | **분석됨(가설)** ✅공백해소 | 프록시/VPN 탐지 신호 미발견 — 설계상 **피닝(NET-PIN-01/02)으로 MITM 저항** 대체. 부재는 약점 아님. [java_analysis §10] |
+| **STO-BACKUP-01 백업** | **분석됨(기각=방어적절)** ✅공백해소 | `allowBackup=false` + backup_rules·data_extraction_rules 전면 exclude. 약점 아님. [java_analysis §10] |
+| **PLT-DEEPLINK-01 딥링크** | **분석됨(가설)** ✅PLATFORM패스 | 2026-11-18 PLATFORM 패스: 딥링크 3표면. ★`kr.co.eqst.pay.s00://mydata/callback`=마이데이터 OAuth 콜백 커스텀 스킴+**PKCE 흔적 없음**→인가코드 가로채기 위험(최고위험). `eqstpay://moim/invite?invitationCode=` 파라미터 흐름, App Link `app.eqstpay.local`(.local→autoVerify 검증불가 테스트구성). 승급=파라미터 taint+`am start` 재현(동적). [java_analysis §11] |
+| **PLT-INTENT-01 노출컴포넌트** | **분석됨(기각=정상)** ✅PLATFORM패스 | exported=true 2건뿐 — MainActivity(RN 단일, 딥링크는 위로 분리)·ProfileInstallReceiver(`permission=DUMP` 서명보호). 나머지 전부 exported=false. 무방비 민감 노출·인텐트 리다이렉션 없음. [java_analysis §11] |
+| **PLT-WEBVIEW-03 미신뢰로드** | **분석됨(가설)** ✅PLATFORM패스 | `mydata-provider-webview`가 외부 제공자 인가 페이지 로드 + `injectedJavaScript`(3)/`onMessage` 브리지. 승급=설정값 확인/동적 주입. WEBVIEW-01/02는 prop 문자열만 존재→값 미확정 가설 보류. [java_analysis §11] |
+| **PLT-SCREENSHOT-01 캡처보호** | **분석됨(가설,강함)** ✅PLATFORM패스 | ★`FLAG_SECURE`·스크린샷 방지 신호 **전무(0건)** — 금융/마이데이터 앱 민감 화면 캡처 보호 부재. 재현 쉬워 **확정 승급 유력**. [java_analysis §11] |
+| **PLT-CLIP-01 클립보드** | **분석됨(가설,약)** | `Clipboard.setString` 사용 — 민감값 복사/민감플래그 여부 미확정. 저위험. [java_analysis §11] |
+| PLT-UIEXPOSE/NOTIF/OVERLAY/A11Y | 미발견(저신호) | 명확 신호 미검출 — RN UI는 동적 화면 관찰이 더 정확. Notification(27)은 라이브러리 노이즈. [java_analysis §11] |
 | (환경) RESILIENCE-3 난독화 | 해당 없음 | 평문 문자열·`detect_anti_analysis` 빈 결과 → 신뢰도 하향 보정 불필요 |
 
 ## 신뢰도 보정 메모
@@ -64,5 +71,7 @@
 
 ## 다음 할 일 (판정별)
 - **확정 후보 → 동적(Frida) 단계**: (a) 각 collector 반환 무력화(native+Java 쌍 동시) → 탐지 우회 재현, (b) 추출 HMAC 키로 clean 리포트 위조 → `/scenario00/monitor/claim` 통과 확인. 되면 RES-* 다수 + NET-PIN + 서명키 결함이 `확정`. (CLAUDE.md상 수동/후속 phase)
-- **공백 → 1차 보강**: NET-CLEAR-01/TLS-01/MITM-01은 **모니터 모듈 밖 앱 본체** 영역 — manifest(NSC) + 앱 실 네트워크 클라이언트(OkHttp/RN fetch) 확인 필요. `/rev-jadx`를 `--no-res` 없이 재실행하거나 manifest 별도 확인.
-- **report → `/rev-report scn00`**: 확정 0이므로 현 report는 "가설 11 + 기각 1 + 공백 3(NET 본체)"를 **단정 없이** 기술. 동적 PoC 후 승급분을 확정 섹션으로 이동.
+- ~~공백 → 1차 보강: NET-CLEAR/TLS/MITM~~ **완료(2026-11-18)**: `/rev-jadx --no-src`로 manifest+res+RN 번들 디코드 → NET 본체 3항목 전부 분석됨(가설)으로 해소, STO-BACKUP 방어적절 확인, PLT 딥링크 신규후보 등록. [java_analysis §10]
+- ~~PLT-DEEPLINK/INTENT 신규후보(전용 PLATFORM 패스)~~ **완료(2026-11-18)**: PLATFORM 패스로 딥링크 3표면·WebView·스크린샷·노출컴포넌트 전수 분석. ★mydata OAuth 커스텀 스킴 콜백(PKCE 부재)·FLAG_SECURE 부재가 핵심. [java_analysis §11]
+- **남은 공백**: RES-DBG-03/HOOK-02/BIND-01 미발견(부재 추정). STORAGE 평문저장(STO-PLAIN/EXT)·로그(STO-LOG)는 RN 앱 특성상 JS 번들/네이티브 저장 경로(AsyncStorage/SharedPrefs) 추가 점검 여지. PLT-WEBVIEW-01/02 설정값·PLT-UIEXPOSE/OVERLAY/A11Y는 동적 화면 관찰 필요.
+- **report → `/rev-report scn00`**: 확정 0이므로 현 report는 "가설(RES/NET 11 + NET본체 3 + PLATFORM: DEEPLINK/WEBVIEW-03/SCREENSHOT/CLIP) + 기각(NET-TRUST·백업·PLT-INTENT) + 미발견"을 **단정 없이** 기술. 동적 PoC 후 승급분(특히 PLT-SCREENSHOT·mydata 콜백)을 확정 섹션으로 이동.
