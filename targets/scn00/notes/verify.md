@@ -1,4 +1,4 @@
-# 2차 검증 결과 — scn00 (RESILIENCE + NETWORK + PLATFORM)
+# 2차 검증 결과 — scn00 (RESILIENCE + NETWORK + PLATFORM + STORAGE)
 
 > 2차 패스: **재실행 2026-11-17** (최초 2026-11-13). 입력: `notes/native/libscn00monitor.so.md`(1차 태깅), `notes/java_analysis.md §9`(이번엔 **정식 criterion ID 태깅 완료** — 역매핑 폴백 불필요), `notes/triage.md`
 > 기준: `docs/criteria/10-resilience.md` + `docs/criteria/50-network.md` · Ghidra MCP 연결됨(`pong`, 네이티브 어셈블리 교차대조는 11-13 패스에서 수행)
@@ -57,6 +57,12 @@
 | NET-TRUST-01 | 분석됨(기각) | 위 — probe 오탐 차단 |
 | **NET-MITM-01 프록시탐지** | **분석됨(가설)** ✅공백해소 | 프록시/VPN 탐지 신호 미발견 — 설계상 **피닝(NET-PIN-01/02)으로 MITM 저항** 대체. 부재는 약점 아님. [java_analysis §10] |
 | **STO-BACKUP-01 백업** | **분석됨(기각=방어적절)** ✅공백해소 | `allowBackup=false` + backup_rules·data_extraction_rules 전면 exclude. 약점 아님. [java_analysis §10] |
+| **STO-KEY-01 키저장** | **분석됨(가설,방어추정)** ✅STORAGE패스 | 2026-11-18 STORAGE 패스: `react-native-keychain`(setGenericPassword+accessControl+**SECURE_HARDWARE**+BIOMETRY)=AndroidKeyStore 하드웨어 경로=**긍정(올바른 보안저장)**. required/preferred 여부는 동적 확인. [java_analysis §12] |
+| **STO-PLAIN-01 평문저장** | **분석됨(가설)** ✅STORAGE패스 | `AsyncStorage`(미암호화) 공존. refreshToken/accessToken/transactionPin 리터럴 존재하나 Keychain 경로도 있어 **민감값의 AsyncStorage 유입은 정적 미확정** → 설치 후 `/data/data/.../databases/RKStorage`·shared_prefs 덤프로 판정. [java_analysis §12] |
+| **STO-HARDCODE-01 하드코딩** | **확정** ★ | `libscn00monitor.so` `.rodata` HMAC 키 `SCN00-monitor-hmac-key-v1-eqstlb` — CRY-HARDKEY-01 이중태깅, 정적 증명=유일 확정. [java_analysis §12] |
+| **STO-EXT-01 외부저장** | **분석됨(가설,약)** ✅STORAGE패스 | 외부저장 쓰기 fs API 미검출. 단 `file_provider_paths.xml` `external-path path="."`=외부루트 전체 범위(구성 점검, 최소화 위반). 민감 쓰기 미발견=저위험. [java_analysis §12] |
+| **STO-LOG-01 로그누수** | **분석됨(가설,약→미발견)** ✅STORAGE패스 | `console.error`+`__DEV__`뿐, BODY로깅/Flipper/Reactotron 없음. RN 릴리스 console 제거. 저위험. [java_analysis §12] |
+| **STO-LEAK-01 부수채널** | **분석됨(PLATFORM 교차)** | 클립보드=PLT-CLIP-01, FLAG_SECURE 부재=PLT-SCREENSHOT-01(가설,강함). 키보드캐시·메모리는 동적 필요. [java_analysis §11/§12] |
 | **PLT-DEEPLINK-01 딥링크** | **분석됨(가설)** ✅PLATFORM패스 | 2026-11-18 PLATFORM 패스: 딥링크 3표면. ★`kr.co.eqst.pay.s00://mydata/callback`=마이데이터 OAuth 콜백 커스텀 스킴+**PKCE 흔적 없음**→인가코드 가로채기 위험(최고위험). `eqstpay://moim/invite?invitationCode=` 파라미터 흐름, App Link `app.eqstpay.local`(.local→autoVerify 검증불가 테스트구성). 승급=파라미터 taint+`am start` 재현(동적). [java_analysis §11] |
 | **PLT-INTENT-01 노출컴포넌트** | **분석됨(기각=정상)** ✅PLATFORM패스 | exported=true 2건뿐 — MainActivity(RN 단일, 딥링크는 위로 분리)·ProfileInstallReceiver(`permission=DUMP` 서명보호). 나머지 전부 exported=false. 무방비 민감 노출·인텐트 리다이렉션 없음. [java_analysis §11] |
 | **PLT-WEBVIEW-03 미신뢰로드** | **분석됨(가설)** ✅PLATFORM패스 | `mydata-provider-webview`가 외부 제공자 인가 페이지 로드 + `injectedJavaScript`(3)/`onMessage` 브리지. 승급=설정값 확인/동적 주입. WEBVIEW-01/02는 prop 문자열만 존재→값 미확정 가설 보류. [java_analysis §11] |
@@ -73,5 +79,6 @@
 - **확정 후보 → 동적(Frida) 단계**: (a) 각 collector 반환 무력화(native+Java 쌍 동시) → 탐지 우회 재현, (b) 추출 HMAC 키로 clean 리포트 위조 → `/scenario00/monitor/claim` 통과 확인. 되면 RES-* 다수 + NET-PIN + 서명키 결함이 `확정`. (CLAUDE.md상 수동/후속 phase)
 - ~~공백 → 1차 보강: NET-CLEAR/TLS/MITM~~ **완료(2026-11-18)**: `/rev-jadx --no-src`로 manifest+res+RN 번들 디코드 → NET 본체 3항목 전부 분석됨(가설)으로 해소, STO-BACKUP 방어적절 확인, PLT 딥링크 신규후보 등록. [java_analysis §10]
 - ~~PLT-DEEPLINK/INTENT 신규후보(전용 PLATFORM 패스)~~ **완료(2026-11-18)**: PLATFORM 패스로 딥링크 3표면·WebView·스크린샷·노출컴포넌트 전수 분석. ★mydata OAuth 커스텀 스킴 콜백(PKCE 부재)·FLAG_SECURE 부재가 핵심. [java_analysis §11]
-- **남은 공백**: RES-DBG-03/HOOK-02/BIND-01 미발견(부재 추정). STORAGE 평문저장(STO-PLAIN/EXT)·로그(STO-LOG)는 RN 앱 특성상 JS 번들/네이티브 저장 경로(AsyncStorage/SharedPrefs) 추가 점검 여지. PLT-WEBVIEW-01/02 설정값·PLT-UIEXPOSE/OVERLAY/A11Y는 동적 화면 관찰 필요.
-- **report → `/rev-report scn00`**: 확정 0이므로 현 report는 "가설(RES/NET 11 + NET본체 3 + PLATFORM: DEEPLINK/WEBVIEW-03/SCREENSHOT/CLIP) + 기각(NET-TRUST·백업·PLT-INTENT) + 미발견"을 **단정 없이** 기술. 동적 PoC 후 승급분(특히 PLT-SCREENSHOT·mydata 콜백)을 확정 섹션으로 이동.
+- ~~STORAGE 평문저장(STO-PLAIN/EXT)·로그(STO-LOG) RN 저장경로 점검~~ **완료(2026-11-18)**: STORAGE 패스. Keychain 하드웨어 경로=긍정, AsyncStorage 공존(가설), 하드코딩 HMAC=확정, 외부저장/로그=저위험. [java_analysis §12]
+- **남은 공백**: RES-DBG-03/HOOK-02/BIND-01 미발견(부재 추정). PLT-WEBVIEW-01/02 설정값·PLT-UIEXPOSE/OVERLAY/A11Y, STO-PLAIN AsyncStorage 평문 여부, STO-KEY 하드웨어 강제 여부는 **동적**(앱 샌드박스 덤프/화면 관찰) 필요 → 동적 PoC 단계.
+- **report → `/rev-report scn00`**: 정적 확정은 **CRY-HARDKEY-01=STO-HARDCODE-01(하드코딩 HMAC 키) 1건**. 나머지는 가설(RES/NET 11 + NET본체 3 + PLATFORM DEEPLINK/WEBVIEW-03/SCREENSHOT/CLIP + STORAGE STO-PLAIN/KEY/EXT/LOG) + 기각(NET-TRUST·백업·PLT-INTENT) + 미발견을 **단정 없이** 기술. 동적 PoC 후 승급분(특히 PLT-SCREENSHOT·mydata 콜백·AsyncStorage 평문)을 확정 섹션으로 이동.

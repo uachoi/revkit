@@ -330,3 +330,48 @@ Hermes 번들의 REST 경로/React-Query 훅 이름으로 재구성한 M형 문�
 - (iOS 전용 MASWE-0031 앱 확장 — Android 해당없음)
 
 > **PLATFORM 패스 요약**: 딥링크 3표면 중 **mydata 커스텀 스킴 콜백(PKCE 부재)** 이 최고위험, **스크린샷 보호 부재**가 재현 쉬운 실질 공백. WebView(mydata 제공자)는 표면 식별·값 미확정으로 가설 보류. 노출 컴포넌트는 최소/표준(기각). 승급은 모두 동적 PoC 단계 몫.
+
+## 12. STORAGE 패스 — 민감 데이터 저장·누수 (2026-11-18)
+
+> `docs/criteria/20-storage.md` 기준. 입력: RN Hermes 번들 `assets/index.android.bundle`(문자열 grep) + manifest + `res/xml/*`. scn00은 RN이라 저장 로직이 JS 라이브러리(AsyncStorage/react-native-keychain) 경유 → Hermes 바이트코드는 **API/키 문자열은 복원되나 값·데이터 흐름(어느 키가 어느 저장소로)은 정적 미확정** → 해당 판정은 "동적 덤프 필요"로 명시. **오탐 함정 선적용**: `pan`(10건)=Timespan/PanGestureHandler/expand 노이즈(카드 PAN 아님), `ssn`=substring(borderle**ssn**apToEnd) → 민감 저장 신호로 **불채택**.
+
+### [STO-KEY-01 / 방어적절] react-native-keychain = AndroidKeyStore 하드웨어 백업 경로 사용 ✓
+- 신뢰도: 가설(방어 추정 — 하드웨어 강제는 동적 확인)
+- 표준: MASVS-STORAGE-1 / MASWE-0003(Cryptographic Keys Stored Outside Platform Keystore) — **부정 소견(방어적절)**
+- 위치: RN 번들 — `RNKeychain`·`setGenericPassword`·`getGenericPassword`·`accessControl`·`SECURE_HARDWARE`·`BIOMETRY`(3)
+- 근거: 자격증명 저장에 `react-native-keychain`을 **접근제어(accessControl)+하드웨어(SECURE_HARDWARE)+생체(BIOMETRY)** 옵션으로 사용 → 키/시크릿이 **플랫폼 KeyStore(AndroidKeyStore) 경유**. AUTH-BIO(생체인증)와 정합. 이는 MASWE-0003이 요구하는 **올바른 보안 저장 경로**로, 긍정 소견.
+- 2차 메모: 오탐 함정 ②(KeyStore 래핑 저장) 해당 → 약점 아님. 단 `SECURE_HARDWARE`가 **요구(required)인지 선호(preferred)인지**는 문자열만으론 미확정 → 동적으로 TEE/StrongBox 실제 백업 확인 시 "방어 확정"으로 승급.
+
+### [STO-PLAIN-01] AsyncStorage(미암호화) 공존 — 민감값 유입 여부 미확정
+- 신뢰도: 가설
+- 표준: MASVS-STORAGE-1 / MASWE-0001(Sensitive Data Stored Unencrypted in Private Storage)
+- 위치: RN 번들 — `AsyncStorage`(3)·`createAsyncStorage`·`RabbitLegacyAsyncStorageImpl`·`setItem`/`getItem`
+- 근거: RN `@react-native-async-storage`는 Android에서 **미암호화**(SQLite `RKStorage` 또는 파일) 저장. 민감 리터럴 `refreshToken`·`accessToken`·`transactionPin*`(Setup/Verify/Confirmation/Status)·`biometric/credentials` 존재. **자격증명은 Keychain(위) 경로가 존재**하므로 정상 설계일 가능성이 높으나, 이들 민감값이 **AsyncStorage에도 평문으로 들어가는지는 Hermes 바이트코드상 키→저장소 흐름이 끊겨 정적 미확정**.
+- 우회(가설): (공격자) 루팅·`adb backup`(단 allowBackup=false로 백업 경로는 차단, §10 STO-BACKUP)·기기분실 시 AsyncStorage 평문 추출.
+- 2차 메모: 오탐 함정 ③(MODE_PRIVATE≠암호화) 유의. **승급/기각 모두 동적 필요**: 설치 후 `/data/data/kr.co.eqst.pay.s00.localapi/`의 `databases/RKStorage`·`shared_prefs/`·`files/`를 덤프해 토큰/PIN 평문 여부 확인(최종 oracle). 민감값이 Keychain에만 있고 AsyncStorage엔 비민감 상태/UI만 있으면 기각.
+
+### [STO-HARDCODE-01] 네이티브 HMAC 키 하드코딩 (확정 — CRY-HARDKEY-01 이중 태깅)
+- 신뢰도: **확정**(정적 증명 — 2경로 교차검증 완료, rev-verify 상한 예외 해당)
+- 표준: MASVS-STORAGE-1 / MASWE-0004(Sensitive Data Hardcoded in the App Package)
+- 위치: `libscn00monitor.so` `.rodata` — `SCN00-monitor-hmac-key-v1-eqstlb`(native §6)
+- 근거: 패키지 내 `.so`에 서명 리포트 HMAC 키가 평문 하드코딩. STORAGE 관점(패키지 내 하드코딩 시크릿)으로 STO-HARDCODE-01, 암호 관점으론 **CRY-HARDKEY-01**(이미 확정). 20-storage.md의 scn00 예시 항목과 일치.
+- 2차 메모: 이 건은 **동적 없이 정적으로 확정**(criteria 문서가 명시한 scn00 예시). report의 확정 섹션 유일 후보.
+
+### [STO-EXT-01] 외부저장 — 쓰기 API 미검출, 단 FileProvider 범위 과다(구성 점검)
+- 신뢰도: 가설(약)
+- 표준: MASVS-STORAGE-1 / MASWE-0002(Sensitive Data Stored Unencrypted Outside of Private Storage)
+- 위치: 번들(외부저장 fs API 미검출) + `res/xml/file_provider_paths.xml`
+- 근거: 번들에 `react-native-fs`/`getExternalFilesDir`/`DownloadDir` 등 **외부저장 쓰기 신호 없음** → 앱이 민감 파일을 외부에 쓰는 정황 미발견. 단 `file_provider_paths.xml`이 `<external-path name="shared" path="."/>`로 **외부저장 루트 전체**를 FileProvider 공유 범위로 선언(공유 기능용). `image_share_filepaths.xml`은 앱 내부 `files-path image_provider/`로 적절히 스코프.
+- 2차 메모: FileProvider는 URI별 `grantUriPermission`이 있어야 노출되므로 즉시 유출은 아니나, `path="."`는 **범위 최소화 원칙 위반**(구성 점검 권고). 민감 쓰기 자체는 미발견 → 저위험.
+
+### [STO-LOG-01] 로그 누수 — 저위험
+- 신뢰도: 가설(약) → 사실상 미발견
+- 표준: MASVS-STORAGE-2 / MASWE-0005(Insertion of Sensitive Data into Logs)
+- 근거: 번들에 `console.error`(1) + `__DEV__`(1)뿐 — `Reactotron`/`Flipper`/`HttpLoggingInterceptor BODY`/다량 `console.log` **미검출**. RN 릴리스는 Metro가 console을 제거/무력화하고 `__DEV__` 게이팅 사용 정황 → 민감 로그 상시 출력 가능성 낮음.
+- 2차 메모: 승급하려면 릴리스 빌드 `logcat`에서 실제 민감값 출력 확인(최종 oracle) — 정적 신호 약함. 저위험으로 남김.
+
+### STO-BACKUP-01 (기각=방어적절) · STO-LEAK-01 (PLATFORM 교차)
+- **STO-BACKUP-01**: §10에서 이미 **기각(방어적절)** — `allowBackup=false` + `backup_rules`·`data_extraction_rules` 전면 exclude. (AsyncStorage 평문이 있어도 백업 경유 유출은 차단됨 → STO-PLAIN 영향 일부 완화.)
+- **STO-LEAK-01**: 부수 채널은 §11 PLATFORM 패스와 교차 — 클립보드 `Clipboard.setString`([PLT-CLIP-01]), `FLAG_SECURE` 부재=스크린샷/최근앱 노출([PLT-SCREENSHOT-01] 가설 강함). 키보드 캐시(`inputType textNoSuggestions`)·프로세스 메모리 상주는 RN 컴포넌트 속성이라 **동적 화면 관찰 필요**(정적 미확정).
+
+> **STORAGE 패스 요약**: 자격증명은 **Keychain(하드웨어+생체) 보안 경로 사용=긍정**, AsyncStorage(평문) 공존하나 민감값 유입은 **동적 덤프로만 판정 가능**(가설). 하드코딩 HMAC 키는 **유일한 확정**(STO-HARDCODE-01=CRY-HARDKEY-01). 외부저장 쓰기·로그 누수는 저위험. 백업은 방어적절(기각). 오탐(`pan`/`ssn`)은 함정 칸으로 차단. 승급은 설치 후 앱 샌드박스 덤프(동적 PoC 단계) 몫.
